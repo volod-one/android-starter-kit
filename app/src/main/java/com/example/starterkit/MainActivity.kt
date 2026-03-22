@@ -1,0 +1,24 @@
+package com.example.starterkit
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.Text
+import com.example.core.ui.theme.StarterKitTheme
+import com.example.features.profile.ProfileScreen
+import dagger.hilt.android.AndroidEntryPoint
+
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            StarterKitTheme {
+                ProfileScreen {  }
+            }
+        }
+    }
+}
