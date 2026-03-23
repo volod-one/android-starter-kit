@@ -27,7 +27,16 @@ def normalize_name(name: str) -> str:
     return name.lower()
 
 # ---- CONTENT RENAME ----
-def rename_content(root_dir, old_base, new_base, old_app_pkg, new_app_pkg, old_name, new_name):
+def rename_content(
+        root_dir,
+        old_base,
+        new_base,
+        old_app_pkg,
+        new_app_pkg,
+        old_name,
+        new_name,
+        should_update_package
+):
     print("🔧 Updating file contents...")
 
     for root, dirs, files in os.walk(root_dir):
@@ -44,13 +53,15 @@ def rename_content(root_dir, old_base, new_base, old_app_pkg, new_app_pkg, old_n
 
                     new_content = content
 
-                    # 1. Replace app package FIRST
-                    new_content = replace_package(new_content, old_app_pkg, new_app_pkg)
+                    # Replace packages only if needed
+                    if should_update_package:
+                        # 1. Replace app package FIRST
+                        new_content = replace_package(new_content, old_app_pkg, new_app_pkg)
 
-                    # 2. Replace base package
-                    new_content = replace_package(new_content, old_base, new_base)
+                        # 2. Replace base package
+                        new_content = replace_package(new_content, old_base, new_base)
 
-                    # Replace app name
+                    # Replace app name always
                     new_content = new_content.replace(old_name, new_name)
 
                     if new_content != content:
@@ -80,7 +91,18 @@ def rename_files(root_dir, old_name, new_name):
 
 
 # ---- PACKAGE MOVE ----
-def move_package_dirs(root_dir, old_base, new_base, old_app_pkg, new_app_pkg):
+def move_package_dirs(
+        root_dir,
+        old_base,
+        new_base,
+        old_app_pkg,
+        new_app_pkg,
+        should_update_package
+):
+    if not should_update_package:
+        print("📦 Skipping package move (package unchanged)")
+        return
+
     print("📦 Moving package directories...")
 
     old_base_parts = old_base.split(".")
@@ -142,11 +164,16 @@ def cleanup_git():
 # ---- MAIN ----
 def main():
     if len(sys.argv) >= 3:
-        new_base_package = sys.argv[1]
-        new_app_name = sys.argv[2]
+        new_base_package = sys.argv[1].strip()
+        new_app_name = sys.argv[2].strip()
     else:
-        new_base_package = input("Enter base package (e.g. com.my.app): ")
-        new_app_name = input("Enter project name: ")
+        new_base_package = input("Enter base package (leave empty to keep current): ").strip()
+        new_app_name = input("Enter project name: ").strip()
+
+    if not new_base_package:
+        new_base_package = OLD_BASE_PACKAGE
+
+    should_update_package = new_base_package != OLD_BASE_PACKAGE
 
     normalized_name = normalize_name(new_app_name)
     new_app_package = f"{new_base_package}.{normalized_name}"
@@ -154,7 +181,12 @@ def main():
     print(f"\n🚀 Setting up project:")
     print(f"   Base package: {new_base_package}")
     print(f"   App name:     {new_app_name}")
-    print(f"   App package:  {new_app_package}\n")
+    print(f"   App package:  {new_app_package}")
+
+    if not should_update_package:
+        print("ℹ️ Package unchanged — only renaming app\n")
+    else:
+        print()
 
     rename_content(
         ".",
@@ -163,7 +195,8 @@ def main():
         OLD_APP_PACKAGE,
         new_app_package,
         OLD_APP_NAME,
-        new_app_name
+        new_app_name,
+        should_update_package
     )
 
     rename_files(".", OLD_APP_NAME, new_app_name)
@@ -173,8 +206,10 @@ def main():
         OLD_BASE_PACKAGE,
         new_base_package,
         OLD_APP_PACKAGE,
-        new_app_package
+        new_app_package,
+        should_update_package
     )
+
     cleanup_git()
 
     # Optional self-delete
